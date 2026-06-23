@@ -365,6 +365,7 @@ function renderVersions(){
 $$('#device button').forEach(function(b){ b.onclick=function(){ $$('#device button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); stage.dataset.d=b.dataset.d; $('#dtag').textContent=b.dataset.d==='tablet'?'Tablette · 768px':'Mobile · 390px'; }; });
 $('#preview').onclick=function(){ var blob=new Blob([exportDoc()],{type:'text/html'}); window.open(URL.createObjectURL(blob),'_blank'); };
 $('#publish').onclick=function(){ openValidation(); };
+$('#saveOnline').onclick=saveOnline;
 $('#undo').onclick=undo; $('#redo').onclick=redo;
 
 function exportDoc(){
@@ -379,6 +380,46 @@ function exportDoc(){
   return '<!DOCTYPE html>\n'+cl.outerHTML;
 }
 function download(name,content){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/html'})); a.download=name; a.click(); }
+
+/* ------------------------------------------------------- ENREGISTRER EN LIGNE (commit GitHub) */
+var GH={ owner:'ynelstudio', repo:'parfi', branch:'main' };
+function ghToken(){ try{ return localStorage.getItem('parfi-gh-token')||''; }catch(e){ return ''; } }
+function repoPathFor(id){ var p=PAGES.filter(function(x){ return x.id===id; })[0]; return 'editor/'+p.file; }   /* p.file = "site/index.html" */
+function b64utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
+function saveOnline(){
+  var page=PAGES.filter(function(x){ return x.id===currentPage; })[0];
+  if(!ghToken()){ askToken(saveOnline); return; }
+  confirmModal('Enregistrer « '+page.label+' » en ligne ?','La page sera publiée sur le site. La mise à jour est visible dans ~30 secondes.',function(){ doCommit(repoPathFor(currentPage), page.label); });
+}
+function doCommit(path,label){
+  endInlineEdit(); flushSnap();
+  var token=ghToken(), api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path;
+  var headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' };
+  setSave(false); toast('Enregistrement en ligne…');
+  var html=exportDoc();
+  fetch(api+'?ref='+GH.branch,{ headers:headers, cache:'no-store' })
+    .then(function(r){ if(r.status===404) return {}; if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); return r.json(); })
+    .then(function(cur){
+      var body={ message:'Edition de '+label+' (editeur visuel)', content:b64utf8(html), branch:GH.branch };
+      if(cur&&cur.sha) body.sha=cur.sha;
+      return fetch(api,{ method:'PUT', headers:headers, body:JSON.stringify(body) });
+    })
+    .then(function(r){ if(r.ok){ dirty=false; setSave(true); toast('✓ Enregistré en ligne — le site se met à jour (~30 s)'); } else return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); })
+    .catch(function(err){ setSave(false); toast('Échec de l\'enregistrement : '+err.message); });
+}
+function askToken(after){
+  showModal('<h3>Connecter GitHub (une seule fois)</h3>'
+    +'<p class="sub">Pour enregistrer en ligne, l\'éditeur a besoin d\'un jeton. Il reste <b>uniquement dans ton navigateur</b> et n\'est jamais publié.</p>'
+    +'<ol class="hint" style="margin:0 0 14px;padding-left:18px;line-height:1.95">'
+    +'<li>Ouvre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → Fine-grained token</a></li>'
+    +'<li><b>Repository access</b> → Only select repositories → <b>ynelstudio/parfi</b></li>'
+    +'<li><b>Permissions</b> → <b>Contents</b> → <b>Read and write</b></li>'
+    +'<li>Generate token → copie-le → colle-le ci-dessous.</li></ol>'
+    +'<input type="password" id="ghTok" placeholder="github_pat_…" autocomplete="off" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">'
+    +'<div class="modal__act"><button class="tbtn" id="tkCancel">Annuler</button><button class="tbtn tbtn--primary" id="tkSave">Connecter</button></div>');
+  $('#tkCancel').onclick=closeModal;
+  $('#tkSave').onclick=function(){ var v=($('#ghTok').value||'').trim(); if(!v){ $('#ghTok').focus(); return; } try{ localStorage.setItem('parfi-gh-token',v); }catch(e){} closeModal(); toast('GitHub connecté ✓'); if(after) after(); };
+}
 
 /* ------------------------------------------------------- VALIDATION */
 function openValidation(){
