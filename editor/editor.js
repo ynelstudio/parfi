@@ -39,7 +39,8 @@ function init(){
   versions=load(versKey())||[];
   var saved=load(stateKey());
   if(saved){ applyState(saved,true); }
-  renderPages(); renderSections(); renderTheme(); renderComponents(); renderMedia(); renderVersions();
+  renderPages(); renderSections(); renderTheme(); renderComponents(); renderMedia(); renderVersions(); renderSEO();
+  loadPagesRegistry(renderPages);
   resetHistory();
   setInterval(autosave, 5000);
   if(!window.__edUnload){ window.__edUnload=1; window.addEventListener('beforeunload',function(){ if(dirty) autosave(); }); window.addEventListener('pagehide',function(){ if(dirty) autosave(); }); }   /* FIX P2: flush au déchargement */
@@ -237,7 +238,8 @@ function switchPage(id){
   currentPage=id;
   var p=PAGES.filter(function(x){ return x.id===id; })[0];
   setSave(true);
-  frame.src=p.file+'?edit=1';   /* le load déclenche init() → ré-initialisation complète pour la nouvelle page */
+  frame.removeAttribute('srcdoc');   /* sinon srcdoc (page tout juste créée) a la priorité sur src */
+  frame.src=p.file+'?edit=1';        /* le load déclenche init() → ré-initialisation complète pour la nouvelle page */
 }
 
 /* ------------------------------------------------------- SECTIONS */
@@ -325,7 +327,7 @@ function pickImage(cb){ var i=document.createElement('input'); i.type='file'; i.
 /* ------------------------------------------------------- HISTORY / STATE */
 function getTheme(){ var vars={}; THEMEVARS.forEach(function(t){ vars[t.v]=doc.documentElement.style.getPropertyValue(t.v).trim()||rgbToHex(win.getComputedStyle(doc.documentElement).getPropertyValue(t.v).trim()); }); return {vars:vars,font:curFont,space:curSpace}; }
 function cleanHTML(){ var b=doc.body.cloneNode(true); $$('.ed-sel,.ed-hover',b).forEach(function(x){x.classList.remove('ed-sel','ed-hover');}); $$('[contenteditable]',b).forEach(function(x){x.removeAttribute('contenteditable');}); return b.innerHTML; }
-function snapshot(){ return {html:cleanHTML(),theme:getTheme()}; }
+function snapshot(){ return {html:cleanHTML(),theme:getTheme(),seo:getSEO()}; }
 function endInlineEdit(){ if(selected&&selected.isContentEditable) selected.contentEditable='false'; $$('[contenteditable="true"]',doc).forEach(function(x){ x.contentEditable='false'; }); }
 function flushSnap(){ if(snapTimer){ clearTimeout(snapTimer); snapTimer=null; if(dirty) commit(); } }
 function reexecScripts(){ $$('script',doc.body).forEach(function(old){ var s=doc.createElement('script'); [].forEach.call(old.attributes,function(a){ s.setAttribute(a.name,a.value); }); s.textContent=old.textContent; old.parentNode.replaceChild(s,old); }); }
@@ -336,7 +338,8 @@ function applyState(st,silent){
   doc.body.innerHTML=st.html;
   reexecScripts();                 /* FIX P0: ré-exécute le JS du site (FAQ, menu, header) sinon aperçu inerte */
   if(st.theme){ Object.keys(st.theme.vars||{}).forEach(function(k){ if(st.theme.vars[k]) doc.documentElement.style.setProperty(k,st.theme.vars[k]); }); applyFont(st.theme.font||'open'); applySpace(st.theme.space||'normal'); }
-  markEditable(); selected=null; emptyInspector(); renderSections(); renderTheme();
+  applySEO(st.seo);
+  markEditable(); selected=null; emptyInspector(); renderSections(); renderTheme(); renderSEO();
   suppress=false;
 }
 function resetHistory(){ history=[snapshot()]; hi=0; updateUndo(); }
@@ -366,6 +369,8 @@ $$('#device button').forEach(function(b){ b.onclick=function(){ $$('#device butt
 $('#preview').onclick=function(){ var blob=new Blob([exportDoc()],{type:'text/html'}); window.open(URL.createObjectURL(blob),'_blank'); };
 $('#publish').onclick=function(){ openValidation(); };
 $('#saveOnline').onclick=saveOnline;
+$('#addPageBtn').onclick=addPage;
+authInit();
 $('#undo').onclick=undo; $('#redo').onclick=redo;
 
 function exportDoc(){
@@ -377,6 +382,7 @@ function exportDoc(){
   [].forEach.call(cl.querySelectorAll('.ed-hidden'),function(x){ x.classList.remove('ed-hidden'); x.setAttribute('hidden',''); });   /* FIX P1: section masquée reste masquée à l'export */
   [].forEach.call(cl.querySelectorAll('.ed-sel,.ed-hover'),function(x){ x.classList.remove('ed-sel','ed-hover'); });
   [].forEach.call(cl.querySelectorAll('[contenteditable]'),function(x){ x.removeAttribute('contenteditable'); });
+  var bs=cl.querySelector('base'); if(bs) bs.remove();   /* jamais de <base> (preview srcdoc) dans le fichier publié */
   return '<!DOCTYPE html>\n'+cl.outerHTML;
 }
 function download(name,content){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/html'})); a.download=name; a.click(); }
@@ -393,18 +399,9 @@ function saveOnline(){
 }
 function doCommit(path,label){
   endInlineEdit(); flushSnap();
-  var token=ghToken(), api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path;
-  var headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' };
   setSave(false); toast('Enregistrement en ligne…');
-  var html=exportDoc();
-  fetch(api+'?ref='+GH.branch,{ headers:headers, cache:'no-store' })
-    .then(function(r){ if(r.status===404) return {}; if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); return r.json(); })
-    .then(function(cur){
-      var body={ message:'Edition de '+label+' (editeur visuel)', content:b64utf8(html), branch:GH.branch };
-      if(cur&&cur.sha) body.sha=cur.sha;
-      return fetch(api,{ method:'PUT', headers:headers, body:JSON.stringify(body) });
-    })
-    .then(function(r){ if(r.ok){ dirty=false; setSave(true); toast('✓ Enregistré en ligne — le site se met à jour (~30 s)'); } else return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); })
+  commitContent(path, exportDoc(), 'Edition de '+label+' (editeur visuel)')
+    .then(function(){ dirty=false; setSave(true); toast('✓ Enregistré en ligne — le site se met à jour (~30 s)'); })
     .catch(function(err){ setSave(false); toast('Échec de l\'enregistrement : '+err.message); });
 }
 function askToken(after){
@@ -479,5 +476,125 @@ function rgbToHex(c){ if(!c) return '#000000'; if(c[0]==='#') return c.length===
 function lum(hex){ var h=rgbToHex(hex).substring(1); var r=parseInt(h.substr(0,2),16)/255,g=parseInt(h.substr(2,2),16)/255,b=parseInt(h.substr(4,2),16)/255; var f=function(x){return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4);}; return .2126*f(r)+.7152*f(g)+.0722*f(b); }
 function ratio(a,b){ var l1=lum(a),l2=lum(b); return (Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05); }
 function bgOf(el){ var n=el; for(var i=0;i<8&&n;i++){ var c=win.getComputedStyle(n).backgroundColor; if(c&&c!=='rgba(0, 0, 0, 0)'&&c!=='transparent') return rgbToHex(c); n=n.parentElement; } return '#ffffff'; }
+
+/* ===================================================================
+   AUTH (login back-office) + GESTION DES UTILISATEURS — côté navigateur.
+   Mots de passe en empreinte SHA-256 (jamais en clair). Barrière d'accès,
+   pas une sécurité serveur (la vraie auth = Phase 2 backend).
+=================================================================== */
+var DEFAULT_USERS=[{email:'contact@ynelstudio.fr',hash:'0f631a05df4ed1669dcd56b2346d871c0a7383800e681a3a04fb0856359f2453',role:'admin'}];
+function users(){ try{ var u=JSON.parse(localStorage.getItem('parfi-users')); return (u&&u.length)?u:DEFAULT_USERS.slice(); }catch(e){ return DEFAULT_USERS.slice(); } }
+function setUsers(list){ try{ localStorage.setItem('parfi-users',JSON.stringify(list)); }catch(e){} }
+function session(){ try{ return JSON.parse(localStorage.getItem('parfi-auth')); }catch(e){ return null; } }
+function isAuthed(){ var s=session(); return !!(s&&s.email&&s.exp&&s.exp>Date.now()); }
+function sha256(s){ var b=new TextEncoder().encode(s); return crypto.subtle.digest('SHA-256',b).then(function(h){ return [].map.call(new Uint8Array(h),function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }); }
+function authInit(){
+  var login=$('#login'); if(!login) return;
+  if(isAuthed()){ login.classList.add('hidden'); afterLogin(); }
+  else { login.classList.remove('hidden'); setTimeout(function(){ var e=$('#loginEmail'); if(e) e.focus(); },60); }
+  $('#loginForm').addEventListener('submit',function(ev){ ev.preventDefault(); doLogin(); });
+  $('#logoutBtn').onclick=function(){ try{ localStorage.removeItem('parfi-auth'); }catch(e){} location.reload(); };
+  $('#usersBtn').onclick=openUsers;
+}
+function doLogin(){
+  var email=($('#loginEmail').value||'').trim(), pass=$('#loginPass').value||'', btn=$('#loginBtn');
+  btn.disabled=true; $('#loginErr').textContent='';
+  var u=users().filter(function(x){ return x.email.toLowerCase()===email.toLowerCase(); })[0];
+  sha256(pass).then(function(h){
+    if(u&&h===u.hash){ try{ localStorage.setItem('parfi-auth',JSON.stringify({email:u.email,role:u.role,exp:Date.now()+7*864e5})); }catch(e){} $('#login').classList.add('hidden'); afterLogin(); }
+    else { $('#loginErr').textContent='E-mail ou mot de passe incorrect.'; btn.disabled=false; $('#loginPass').value=''; $('#loginPass').focus(); }
+  });
+}
+function afterLogin(){ var s=session()||{}; var w=$('#whoEmail'); if(w) w.textContent=s.email||''; var ub=$('#usersBtn'); if(ub) ub.classList.toggle('hide', s.role!=='admin'); }
+function openUsers(){
+  var list=users();
+  var H='<h3>Utilisateurs du back-office</h3><p class="sub">Qui peut se connecter. Mots de passe stockés en empreinte (jamais en clair).</p>';
+  list.forEach(function(u,i){ H+='<div class="urow"><span class="ue">'+esc(u.email)+'</span><span class="ur">'+esc(u.role)+'</span><button class="udel" data-i="'+i+'" title="Supprimer">✕</button></div>'; });
+  H+='<h4>Ajouter un utilisateur</h4><div class="uadd">'
+   +'<input class="full" id="nuEmail" type="email" placeholder="email@exemple.fr" autocomplete="off">'
+   +'<input id="nuPass" type="password" placeholder="mot de passe" autocomplete="new-password">'
+   +'<select id="nuRole"><option value="editor">Éditeur</option><option value="admin">Admin</option></select>'
+   +'<button class="tbtn tbtn--primary full" id="nuAdd">Ajouter</button></div>'
+   +'<h4>Changer mon mot de passe</h4><div class="uadd"><input class="full" id="cpPass" type="password" placeholder="nouveau mot de passe" autocomplete="new-password"><button class="tbtn full" id="cpBtn">Mettre à jour</button></div>'
+   +'<div class="modal__act"><button class="tbtn" id="uClose">Fermer</button></div>';
+  showModal(H);
+  $('#uClose').onclick=closeModal;
+  $$('#modal .udel').forEach(function(b){ b.onclick=function(){ var i=+b.dataset.i, l=users(); if(l.length<=1){ toast('Impossible de supprimer le dernier utilisateur'); return; } if(l[i].email===(session()||{}).email){ toast('Tu ne peux pas te supprimer toi-même'); return; } l.splice(i,1); setUsers(l); openUsers(); }; });
+  $('#nuAdd').onclick=function(){ var e=($('#nuEmail').value||'').trim(), p=$('#nuPass').value||'', r=$('#nuRole').value; if(!e||!p){ toast('E-mail et mot de passe requis'); return; } var l=users(); if(l.some(function(x){ return x.email.toLowerCase()===e.toLowerCase(); })){ toast('Cet e-mail existe déjà'); return; } sha256(p).then(function(h){ l.push({email:e,hash:h,role:r}); setUsers(l); openUsers(); toast('Utilisateur ajouté ✓'); }); };
+  $('#cpBtn').onclick=function(){ var p=$('#cpPass').value||''; if(p.length<4){ toast('Mot de passe trop court'); return; } var me=(session()||{}).email; sha256(p).then(function(h){ setUsers(users().map(function(x){ if(x.email===me) x.hash=h; return x; })); toast('Mot de passe mis à jour ✓'); closeModal(); }); };
+}
+
+/* ===================================================================
+   SEO par page (titre, description, Open Graph) + aperçu Google
+=================================================================== */
+function getMeta(name,attr){ attr=attr||'name'; return doc.head.querySelector('meta['+attr+'="'+name+'"]'); }
+function setMeta(name,attr,content){ attr=attr||'name'; var m=getMeta(name,attr); if(!m){ m=doc.createElement('meta'); m.setAttribute(attr,name); doc.head.appendChild(m); } m.setAttribute('content',content||''); }
+function getSEO(){ if(!doc) return null; var t=doc.querySelector('title'); function mc(n,a){ var m=getMeta(n,a); return m?(m.getAttribute('content')||''):''; }
+  return { title:t?t.textContent:'', desc:mc('description','name'), ogt:mc('og:title','property'), ogd:mc('og:description','property'), ogi:mc('og:image','property') }; }
+function applySEO(s){ if(!s||!doc) return; var t=doc.querySelector('title'); if(!t){ t=doc.createElement('title'); doc.head.appendChild(t); } t.textContent=s.title||''; setMeta('description','name',s.desc||''); setMeta('og:title','property',s.ogt||s.title||''); setMeta('og:description','property',s.ogd||s.desc||''); if(s.ogi) setMeta('og:image','property',s.ogi); }
+function renderSEO(){
+  var box=$('#seoPanel'); if(!box||!doc) return; var s=getSEO();
+  box.innerHTML='<div class="seo-field"><label>Titre <span class="count" id="seoTc"></span></label><input id="seoTitle" type="text" value="'+esc(s.title)+'"></div>'
+    +'<div class="seo-field"><label>Description <span class="count" id="seoDc"></span></label><textarea id="seoDesc">'+esc(s.desc)+'</textarea></div>'
+    +'<div class="gpreview"><div class="gt" id="gpT"></div><div class="gu">ynelstudio.github.io › parfi</div><div class="gd" id="gpD"></div></div>'
+    +'<div class="seo-field"><label>Image de partage (URL)</label><input id="seoOg" type="url" placeholder="https://…/image.jpg" value="'+esc(s.ogi)+'"></div>';
+  function refresh(){ var t=$('#seoTitle').value, d=$('#seoDesc').value; $('#gpT').textContent=t||'Titre de la page'; $('#gpD').textContent=d||'La description s\'affichera ici dans les résultats Google.'; var tc=$('#seoTc'); tc.textContent=t.length+'/60'; tc.classList.toggle('warn',t.length>60); var dc=$('#seoDc'); dc.textContent=d.length+'/160'; dc.classList.toggle('warn',d.length>160); }
+  function commitSEO(){ applySEO({ title:$('#seoTitle').value, desc:$('#seoDesc').value, ogi:$('#seoOg').value }); commit(); }
+  $('#seoTitle').oninput=function(){ refresh(); markDirty(); }; $('#seoTitle').onchange=commitSEO;
+  $('#seoDesc').oninput=function(){ refresh(); markDirty(); }; $('#seoDesc').onchange=commitSEO;
+  $('#seoOg').onchange=commitSEO;
+  refresh();
+}
+
+/* ===================================================================
+   PAGES dynamiques : registre site/pages.json + ajout de page (au thème)
+=================================================================== */
+var pagesLoaded=false;
+function loadPagesRegistry(cb){
+  if(pagesLoaded){ if(cb)cb(); return; }
+  fetch('site/pages.json?cb='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; })
+    .then(function(list){ if(list&&list.length) PAGES=list; pagesLoaded=true; if(cb)cb(); })
+    .catch(function(){ pagesLoaded=true; if(cb)cb(); });
+}
+function slugify(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'page'; }
+function addPage(){
+  if(!ghToken()){ askToken(addPage); return; }
+  showModal('<h3>Nouvelle page</h3><p class="sub">Une page au thème du site (en-tête, pied et styles identiques).</p>'
+    +'<div class="seo-field"><label>Nom de la page</label><input id="npName" type="text" placeholder="Ex : Nos tarifs"></div>'
+    +'<label class="toggle" style="padding:4px 0;cursor:pointer"><span style="font-size:13px;font-weight:600">Copier la page courante comme base</span> <input type="checkbox" id="npCopy" style="width:auto;height:auto"></label>'
+    +'<div class="modal__act"><button class="tbtn" id="npCancel">Annuler</button><button class="tbtn tbtn--primary" id="npCreate">Créer la page</button></div>');
+  $('#npCancel').onclick=closeModal; setTimeout(function(){ var n=$('#npName'); if(n) n.focus(); },40);
+  $('#npCreate').onclick=function(){ var name=($('#npName').value||'').trim(); if(!name){ $('#npName').focus(); return; } var copy=$('#npCopy').checked; closeModal(); createPage(name,copy); };
+}
+function createPage(name,copyCurrent){
+  endInlineEdit(); flushSnap();
+  var base=slugify(name), slug=base, n=2, existing=PAGES.map(function(p){ return p.file; });
+  while(existing.indexOf('site/'+slug+'.html')>-1){ slug=base+'-'+n; n++; }
+  var file='site/'+slug+'.html', id=slug;
+  var docp=new DOMParser().parseFromString(exportDoc(),'text/html');
+  var t=docp.querySelector('title'); if(t) t.textContent=name+' - ParFi Group';
+  var dm=docp.head.querySelector('meta[name="description"]'); if(dm) dm.setAttribute('content','');
+  if(!copyCurrent){ var m=docp.querySelector('main'); if(m) m.innerHTML='<section class="page-hero"><div class="wrap"><h1>'+esc(name)+'</h1><p>Cliquez sur ce texte pour le modifier, ou ajoutez des blocs depuis le panneau « Blocs ».</p></div></section>'; }
+  var html='<!DOCTYPE html>\n'+docp.documentElement.outerHTML;
+  PAGES.push({id:id,label:name,file:file}); renderPages();
+  currentPage=id; deselect();
+  frame.srcdoc=html.replace('<head>','<head><base href="site/">');   /* aperçu immédiat ; base pour résoudre assets/ */
+  toast('Création de « '+name+' »…');
+  Promise.all([
+    commitContent('editor/'+file, html, 'Nouvelle page : '+name),
+    commitContent('editor/site/pages.json', JSON.stringify(PAGES,null,2), 'MAJ liste des pages')
+  ]).then(function(){ toast('✓ Page « '+name+' » créée — en ligne dans ~30 s'); })
+    .catch(function(err){ toast('Page créée (locale) ; échec mise en ligne : '+err.message); });
+}
+
+/* Commit générique d'un fichier via l'API GitHub (réutilisé par doCommit/createPage) */
+function commitContent(path,contentStr,message){
+  var token=ghToken(), api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path;
+  var headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' };
+  return fetch(api+'?ref='+GH.branch,{ headers:headers, cache:'no-store' })
+    .then(function(r){ if(r.status===404) return {}; if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); return r.json(); })
+    .then(function(cur){ var body={ message:message, content:b64utf8(contentStr), branch:GH.branch }; if(cur&&cur.sha) body.sha=cur.sha; return fetch(api,{ method:'PUT', headers:headers, body:JSON.stringify(body) }); })
+    .then(function(r){ if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||('HTTP '+r.status)); }); return r.json(); });
+}
 
 })();

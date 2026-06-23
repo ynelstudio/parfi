@@ -135,3 +135,49 @@ select.ed{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-weight:600;font-size:13px;box-shadow:var(--sh);opacity:0;pointer-events:none;transition:.25s;z-index:70;display:flex;gap:9px;align-items:center;}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 .empty-note{color:var(--muted);font-size:12.5px;padding:8px 0;}
+
+/* ===================== LOGIN ===================== */
+.login{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(1000px 600px at 72% -10%,#2f4f96,#23346B 60%,#16224c);}
+.login.hidden{display:none;}
+.login__card{background:#fff;border-radius:18px;box-shadow:0 30px 80px rgba(0,0,0,.42);width:min(400px,93vw);padding:34px 32px;}
+.login__brand{font-weight:800;font-size:25px;text-align:center;margin-bottom:4px;letter-spacing:-.4px;}
+.login__brand b{color:var(--nav);} .login__brand i{color:var(--cyan);font-style:normal;}
+.login__sub{text-align:center;color:var(--muted);font-size:12.5px;margin-bottom:24px;}
+.login label{display:block;font-weight:700;font-size:12px;margin:0 0 6px;}
+.login input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:15px;font:inherit;}
+.login input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,186,229,.15);}
+.login__err{color:var(--err);font-size:13px;font-weight:600;margin-bottom:12px;min-height:18px;}
+.login__btn{width:100%;padding:13px;border-radius:10px;background:var(--nav);color:#fff;font-weight:700;font-size:15px;}
+.login__btn:hover{background:#1a274f;}
+.login__btn:disabled{opacity:.5;}
+
+/* ===================== USER AREA (top bar) ===================== */
+.userbox{display:flex;align-items:center;gap:7px;padding-left:12px;margin-left:2px;border-left:1px solid var(--line);}
+.userbox .who{font-size:12px;color:var(--muted);font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.iconbtn{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line);background:var(--panel);}
+.iconbtn:hover{background:var(--bg);color:var(--nav);}
+.iconbtn.hide{display:none;}
+
+/* ===================== SEO ===================== */
+.seo-field{margin-bottom:15px;}
+.seo-field label{display:block;font-weight:700;font-size:12px;margin-bottom:6px;}
+.seo-field label .count{float:right;font-weight:600;color:var(--muted);font-size:11px;}
+.seo-field label .count.warn{color:var(--warn);}
+.seo-field input,.seo-field textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;color:var(--ink);}
+.seo-field textarea{resize:vertical;min-height:64px;line-height:1.5;}
+.gpreview{border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin:4px 0 16px;background:#fff;}
+.gpreview .gt{color:#1a0dab;font-size:15px;line-height:1.3;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gpreview .gu{color:#006621;font-size:12px;margin-bottom:5px;}
+.gpreview .gd{color:#4d5156;font-size:12.5px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+
+/* ===================== USERS MODAL ===================== */
+.urow{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px;}
+.urow .ue{flex:1;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.urow .ur{font-size:10.5px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.4px;}
+.urow .udel{width:28px;height:28px;border-radius:6px;color:var(--err);display:grid;place-items:center;}
+.urow .udel:hover{background:#fdf4f3;}
+.uadd{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+.uadd input,.uadd select{padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;}
+.uadd .full{grid-column:1 / -1;}
+.modal h4{margin:18px 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);}

@@ -1,0 +1,6 @@
+[
+  { "id": "index", "label": "Accueil", "file": "site/index.html" },
+  { "id": "services", "label": "Services", "file": "site/services.html" },
+  { "id": "apropos", "label": "À propos", "file": "site/apropos.html" },
+  { "id": "contact", "label": "Contact", "file": "site/contact.html" }
+]

@@ -9,6 +9,23 @@
 <link rel="stylesheet" href="editor.css">
 </head>
 <body>
+
+<!-- ===== Écran de connexion (back-office) ===== -->
+<div class="login" id="login">
+  <div class="login__card">
+    <div class="login__brand"><b>Par</b><i>fi</i> · Back-office</div>
+    <p class="login__sub">Connecte-toi pour modifier le site.</p>
+    <form id="loginForm" autocomplete="on">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" autocomplete="username" placeholder="contact@ynelstudio.fr">
+      <label>Mot de passe</label>
+      <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••">
+      <div class="login__err" id="loginErr"></div>
+      <button type="submit" class="login__btn" id="loginBtn">Se connecter</button>
+    </form>
+  </div>
+</div>
+
 <div class="app">
 
   <!-- ===== Barre du haut ===== -->
@@ -26,6 +43,11 @@
     <button class="tbtn" id="preview"><svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Aperçu</button>
     <button class="tbtn" id="publish"><svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Exporter</button>
     <button class="tbtn tbtn--primary" id="saveOnline"><svg class="ico" viewBox="0 0 24 24"><path d="M20 17.6A4 4 0 0 0 18 10h-1.26A6 6 0 1 0 7 16"/><path d="M12 12v9"/><path d="m8.5 15.5 3.5-3.5 3.5 3.5"/></svg>Enregistrer en ligne</button>
+    <div class="userbox">
+      <span class="who" id="whoEmail"></span>
+      <button class="iconbtn hide" id="usersBtn" title="Gérer les utilisateurs"><svg class="ico" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
+      <button class="iconbtn" id="logoutBtn" title="Déconnexion"><svg class="ico" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg></button>
+    </div>
   </header>
 
   <div class="body">
@@ -44,7 +66,10 @@
       <section class="tabpane on" data-p="pages">
         <h4>Pages du site</h4>
         <div id="pageList"></div>
-        <p class="hint" style="margin-top:12px">Chaque page a son propre contenu, son autosave et ses versions. <strong>News</strong> &amp; <strong>Jobs</strong> sont des liens externes.</p>
+        <button class="add" id="addPageBtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouvelle page</button>
+        <h4 style="margin-top:22px">SEO de la page courante</h4>
+        <div id="seoPanel"></div>
+        <p class="hint" style="margin-top:8px"><strong>News</strong> &amp; <strong>Jobs</strong> sont des liens externes. Les modifs s'appliquent à <strong>tous les écrans</strong> (desktop/tablette/mobile) automatiquement.</p>
       </section>
       <section class="tabpane" data-p="sections">
         <h4>Sections de la page</h4>
