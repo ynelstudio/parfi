@@ -1,0 +1,13 @@
+{
+  "name": "ParFi — site & éditeur",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "forwardPorts": [5050],
+  "portsAttributes": {
+    "5050": {
+      "label": "ParFi — éditeur & site",
+      "visibility": "private",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "postStartCommand": "nohup python3 -m http.server 5050 > /tmp/parfi-server.log 2>&1 &"
+}
