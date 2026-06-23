@@ -398,8 +398,41 @@ function b64utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
 function saveOnline(){
   if(!isAuthed()){ toast('Connecte-toi d\'abord'); authInit(); return; }
   var page=PAGES.filter(function(x){ return x.id===currentPage; })[0];
-  if(!ghToken()){ askToken(saveOnline); return; }
+  if(!ghToken()){ saveViaGitHub(); return; }   /* pas de token → méthode copier-coller GitHub (sans token) */
   confirmModal('Enregistrer « '+page.label+' » en ligne ?','La page sera publiée sur le site. La mise à jour est visible dans ~30 secondes.',function(){ doCommit(repoPathFor(currentPage), page.label); });
+}
+/* ---- Enregistrement SANS TOKEN : copie le code + ouvre le fichier sur GitHub ---- */
+function ghEditUrl(){ var p=PAGES.filter(function(x){ return x.id===currentPage; })[0]; return 'https://github.com/'+GH.owner+'/'+GH.repo+'/edit/'+GH.branch+'/editor/'+p.file; }
+function saveViaGitHub(){
+  endInlineEdit(); flushSnap();
+  var page=PAGES.filter(function(x){ return x.id===currentPage; })[0];
+  var html=exportDoc();
+  var steps='<ol class="hint" style="line-height:1.95;padding-left:18px;margin:0 0 16px">'
+    +'<li>Clique <b>Ouvrir GitHub</b> (un nouvel onglet s\'ouvre sur ta page).</li>'
+    +'<li>Dans la zone de code : <b>Ctrl + A</b> (tout sélectionner) puis <b>Ctrl + V</b> (coller).</li>'
+    +'<li>En bas, bouton vert <b>Commit changes…</b> → <b>Commit changes</b>.</li>'
+    +'<li>Le site se met à jour tout seul en ~30 s. ✅</li></ol>';
+  function openModal(extra){
+    showModal('<h3>Publier « '+esc(page.label)+' » sur GitHub</h3>'
+      +'<p class="sub">Aucun token nécessaire — tu es déjà connecté à GitHub. '+(extra||'Le code est <b>copié</b> dans ton presse-papier.')+'</p>'
+      +steps
+      +'<div class="modal__act"><button class="tbtn" id="ghCancel">Fermer</button><button class="tbtn tbtn--primary" id="ghOpen">Ouvrir GitHub ↗</button></div>');
+    $('#ghCancel').onclick=closeModal;
+    $('#ghOpen').onclick=function(){ window.open(ghEditUrl(),'_blank','noopener'); dirty=false; setSave(true); toast('Onglet GitHub ouvert — colle puis « Commit changes »'); };
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(html).then(function(){ openModal(); }).catch(function(){ openManual(html,page,steps); });
+  } else { openManual(html,page,steps); }
+}
+function openManual(html,page,steps){
+  showModal('<h3>Publier « '+esc(page.label)+' » sur GitHub</h3>'
+    +'<p class="sub">Copie ce code (bouton ci-dessous), puis colle-le dans le fichier sur GitHub.</p>'
+    +'<textarea id="ghCode" readonly style="width:100%;height:150px;font:12px ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px">'+esc(html)+'</textarea>'
+    +steps
+    +'<div class="modal__act"><button class="tbtn" id="ghCancel">Fermer</button><button class="tbtn" id="ghCopy">Copier le code</button><button class="tbtn tbtn--primary" id="ghOpen">Ouvrir GitHub ↗</button></div>');
+  $('#ghCancel').onclick=closeModal;
+  $('#ghCopy').onclick=function(){ var t=$('#ghCode'); t.focus(); t.select(); try{ document.execCommand('copy'); toast('Code copié ✓'); }catch(e){} };
+  $('#ghOpen').onclick=function(){ window.open(ghEditUrl(),'_blank','noopener'); };
 }
 function doCommit(path,label){
   endInlineEdit(); flushSnap();
