@@ -32,6 +32,7 @@ var SPACE={compact:'.section{padding:56px 0}.section--tight{padding:44px 0}',nor
 /* ---------------------------------------------------------------- init */
 frame.addEventListener('load', init);
 function init(){
+  if(!isAuthed()) return;                 /* FIX P0 : aucun démarrage sans authentification */
   doc=frame.contentDocument; win=frame.contentWindow;
   injectStyles();
   markEditable();
@@ -175,7 +176,7 @@ function bindInspector(type,el){
     $$('#fWeight button',document).forEach(function(b){ if(b.dataset.w===String(win.getComputedStyle(el).fontWeight)) b.classList.add('on'); b.onclick=function(){ $$('#fWeight button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); el.style.fontWeight=b.dataset.w; commit(); }; });
     var al=el.style.textAlign||win.getComputedStyle(el).textAlign;
     $$('#fAlign button',document).forEach(function(b){ if(b.dataset.a===al||(al==='start'&&b.dataset.a==='left')) b.classList.add('on'); b.onclick=function(){ $$('#fAlign button').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); el.style.textAlign=b.dataset.a; commit(); }; });
-    $$('.stepper button',document).forEach(function(b){ b.onclick=function(){ var s=parseInt(win.getComputedStyle(el).fontSize)||16; s=Math.max(10,Math.min(80,s+parseInt(b.dataset.step))); el.style.fontSize=s+'px'; $('#fSize').textContent=s+'px'; b.closest('.fieldrow').querySelector('label').textContent='Taille — '+s+'px'; commit(); }; });
+    $$('.stepper button',document).forEach(function(b){ b.onclick=function(){ var s=parseInt(win.getComputedStyle(el).fontSize)||16; s=Math.max(10,Math.min(80,s+parseInt(b.dataset.step))); el.style.fontSize='clamp('+Math.round(s*0.6)+'px, '+(s/3.9).toFixed(2)+'vw, '+s+'px)'; $('#fSize').textContent=s+'px'; b.closest('.fieldrow').querySelector('label').textContent='Taille — '+s+'px'; commit(); }; });
   }
   else if(type==='button'){
     $('#bText').oninput=function(){ setBtnText(el,this.value); markDirty(); }; $('#bText').onchange=commit;
@@ -236,10 +237,11 @@ function switchPage(id){
   if(dirty) autosave();
   deselect();
   currentPage=id;
-  var p=PAGES.filter(function(x){ return x.id===id; })[0];
   setSave(true);
-  frame.removeAttribute('srcdoc');   /* sinon srcdoc (page tout juste créée) a la priorité sur src */
-  frame.src=p.file+'?edit=1';        /* le load déclenche init() → ré-initialisation complète pour la nouvelle page */
+  if(sessionPages[id]){ frame.removeAttribute('src'); frame.srcdoc=sessionPages[id]; return; }   /* page créée en session : re-servir l'aperçu (fichier pas encore déployé) */
+  var p=PAGES.filter(function(x){ return x.id===id; })[0];
+  frame.removeAttribute('srcdoc');   /* sinon srcdoc a la priorité sur src */
+  frame.src=p.file+'?edit=1';        /* le load déclenche init() */
 }
 
 /* ------------------------------------------------------- SECTIONS */
@@ -266,7 +268,7 @@ function secAction(a,sec){
   else if(a==='down'){ var n=sec.nextElementSibling; if(n&&n.tagName==='SECTION') sec.parentNode.insertBefore(n,sec); }
   else if(a==='dup'){ endInlineEdit(); var c=sec.cloneNode(true); [].forEach.call(c.querySelectorAll('.ed-sel,[contenteditable]'),function(x){ x.classList.remove('ed-sel'); x.removeAttribute('contenteditable'); }); c.id=uniqueId(sec.id+'-copie'); [].forEach.call(c.querySelectorAll('[id]'),function(n){ n.id=uniqueId(n.id); }); sec.parentNode.insertBefore(c,sec.nextSibling); }
   else if(a==='hide'){ sec.classList.toggle('ed-hidden'); }
-  else if(a==='del'){ confirmModal('Supprimer cette section ?','« '+secName(sec)+' » sera retirée de la page.',function(){ sec.remove(); finishStructural(); }); return; }
+  else if(a==='del'){ confirmModal('Supprimer cette section ?','« '+esc(secName(sec))+' » sera retirée de la page.',function(){ sec.remove(); finishStructural(); }); return; }
   finishStructural();
 }
 function finishStructural(){ markEditable(); renderSections(); commit(); }
@@ -361,7 +363,7 @@ function renderVersions(){
     row.querySelector('button').onclick=function(){ confirmModal('Restaurer cette version ?','La page actuelle sera remplacée par « '+v.label+' ».',function(){ applyState(v,true); commit(); toast('Version restaurée'); }); };
     box.appendChild(row);
   });
-  $('#snapNow').onclick=function(){ var d=new Date(); versions.push({label:'Version '+(versions.length+1),date:d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),html:cleanHTML(),theme:getTheme()}); if(save(versKey(),versions)){ renderVersions(); toast('Version enregistrée'); } else { versions.pop(); toast('Version non enregistrée : stockage plein'); } };
+  $('#snapNow').onclick=function(){ var d=new Date(); versions.push({label:'Version '+(versions.length+1),date:d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),html:cleanHTML(),theme:getTheme(),seo:getSEO()}); if(save(versKey(),versions)){ renderVersions(); toast('Version enregistrée'); } else { versions.pop(); toast('Version non enregistrée : stockage plein'); } };
 }
 
 /* ------------------------------------------------------- DEVICE / PREVIEW / PUBLISH */
@@ -370,6 +372,7 @@ $('#preview').onclick=function(){ var blob=new Blob([exportDoc()],{type:'text/ht
 $('#publish').onclick=function(){ openValidation(); };
 $('#saveOnline').onclick=saveOnline;
 $('#addPageBtn').onclick=addPage;
+document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&$('#backdrop').classList.contains('on')) closeModal(); },true);
 authInit();
 $('#undo').onclick=undo; $('#redo').onclick=redo;
 
@@ -393,14 +396,17 @@ function ghToken(){ try{ return localStorage.getItem('parfi-gh-token')||''; }cat
 function repoPathFor(id){ var p=PAGES.filter(function(x){ return x.id===id; })[0]; return 'editor/'+p.file; }   /* p.file = "site/index.html" */
 function b64utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
 function saveOnline(){
+  if(!isAuthed()){ toast('Connecte-toi d\'abord'); authInit(); return; }
   var page=PAGES.filter(function(x){ return x.id===currentPage; })[0];
   if(!ghToken()){ askToken(saveOnline); return; }
   confirmModal('Enregistrer « '+page.label+' » en ligne ?','La page sera publiée sur le site. La mise à jour est visible dans ~30 secondes.',function(){ doCommit(repoPathFor(currentPage), page.label); });
 }
 function doCommit(path,label){
   endInlineEdit(); flushSnap();
+  var html=exportDoc();
+  if(new Blob([html]).size>900000){ toast('Trop lourd pour l\'enregistrement (image > ~1 Mo) — optimise/réduis l\'image avant de publier.'); return; }
   setSave(false); toast('Enregistrement en ligne…');
-  commitContent(path, exportDoc(), 'Edition de '+label+' (editeur visuel)')
+  commitContent(path, html, 'Edition de '+label+' (editeur visuel)')
     .then(function(){ dirty=false; setSave(true); toast('✓ Enregistré en ligne — le site se met à jour (~30 s)'); })
     .catch(function(err){ setSave(false); toast('Échec de l\'enregistrement : '+err.message); });
 }
@@ -415,7 +421,10 @@ function askToken(after){
     +'<input type="password" id="ghTok" placeholder="github_pat_…" autocomplete="off" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px">'
     +'<div class="modal__act"><button class="tbtn" id="tkCancel">Annuler</button><button class="tbtn tbtn--primary" id="tkSave">Connecter</button></div>');
   $('#tkCancel').onclick=closeModal;
-  $('#tkSave').onclick=function(){ var v=($('#ghTok').value||'').trim(); if(!v){ $('#ghTok').focus(); return; } try{ localStorage.setItem('parfi-gh-token',v); }catch(e){} closeModal(); toast('GitHub connecté ✓'); if(after) after(); };
+  $('#tkSave').onclick=function(){ var v=($('#ghTok').value||'').trim(); if(!v){ $('#ghTok').focus(); return; } var btn=$('#tkSave'); btn.disabled=true; btn.textContent='Vérification…';
+    fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo,{ headers:{'Authorization':'Bearer '+v,'Accept':'application/vnd.github+json'}, cache:'no-store' })
+      .then(function(r){ if(!r.ok) throw new Error('Jeton invalide ou sans accès à '+GH.owner+'/'+GH.repo+' (vérifie les permissions Contents).'); try{ localStorage.setItem('parfi-gh-token',v); }catch(e){} closeModal(); toast('GitHub connecté ✓'); if(after) after(); })
+      .catch(function(err){ btn.disabled=false; btn.textContent='Connecter'; toast(err.message); }); };
 }
 
 /* ------------------------------------------------------- VALIDATION */
@@ -487,11 +496,11 @@ function users(){ try{ var u=JSON.parse(localStorage.getItem('parfi-users')); re
 function setUsers(list){ try{ localStorage.setItem('parfi-users',JSON.stringify(list)); }catch(e){} }
 function session(){ try{ return JSON.parse(localStorage.getItem('parfi-auth')); }catch(e){ return null; } }
 function isAuthed(){ var s=session(); return !!(s&&s.email&&s.exp&&s.exp>Date.now()); }
-function sha256(s){ var b=new TextEncoder().encode(s); return crypto.subtle.digest('SHA-256',b).then(function(h){ return [].map.call(new Uint8Array(h),function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }); }
+function sha256(s){ if(!(window.crypto&&crypto.subtle)) return Promise.reject(new Error('Contexte non sécurisé : ouvre l\'éditeur en https ou sur localhost.')); var b=new TextEncoder().encode(s); return crypto.subtle.digest('SHA-256',b).then(function(h){ return [].map.call(new Uint8Array(h),function(x){ return ('0'+x.toString(16)).slice(-2); }).join(''); }); }
 function authInit(){
   var login=$('#login'); if(!login) return;
   if(isAuthed()){ login.classList.add('hidden'); afterLogin(); }
-  else { login.classList.remove('hidden'); setTimeout(function(){ var e=$('#loginEmail'); if(e) e.focus(); },60); }
+  else { login.classList.remove('hidden'); var ap=document.querySelector('.app'); if(ap){ ap.setAttribute('inert',''); ap.setAttribute('aria-hidden','true'); } setTimeout(function(){ var e=$('#loginEmail'); if(e) e.focus(); },60); }
   $('#loginForm').addEventListener('submit',function(ev){ ev.preventDefault(); doLogin(); });
   $('#logoutBtn').onclick=function(){ try{ localStorage.removeItem('parfi-auth'); }catch(e){} location.reload(); };
   $('#usersBtn').onclick=openUsers;
@@ -503,10 +512,12 @@ function doLogin(){
   sha256(pass).then(function(h){
     if(u&&h===u.hash){ try{ localStorage.setItem('parfi-auth',JSON.stringify({email:u.email,role:u.role,exp:Date.now()+7*864e5})); }catch(e){} $('#login').classList.add('hidden'); afterLogin(); }
     else { $('#loginErr').textContent='E-mail ou mot de passe incorrect.'; btn.disabled=false; $('#loginPass').value=''; $('#loginPass').focus(); }
-  });
+  }).catch(function(err){ $('#loginErr').textContent=err.message||'Erreur'; btn.disabled=false; });
 }
-function afterLogin(){ var s=session()||{}; var w=$('#whoEmail'); if(w) w.textContent=s.email||''; var ub=$('#usersBtn'); if(ub) ub.classList.toggle('hide', s.role!=='admin'); }
+function startEditor(){ var ap=document.querySelector('.app'); if(ap){ ap.removeAttribute('inert'); ap.removeAttribute('aria-hidden'); } if(frame && !frame.getAttribute('src')){ frame.setAttribute('src', frame.getAttribute('data-src')||'site/index.html?edit=1'); } }
+function afterLogin(){ var s=session()||{}; var w=$('#whoEmail'); if(w) w.textContent=s.email||''; var ub=$('#usersBtn'); if(ub) ub.classList.toggle('hide', s.role!=='admin'); startEditor(); }
 function openUsers(){
+  if((session()||{}).role!=='admin'){ toast('Réservé aux administrateurs'); return; }
   var list=users();
   var H='<h3>Utilisateurs du back-office</h3><p class="sub">Qui peut se connecter. Mots de passe stockés en empreinte (jamais en clair).</p>';
   list.forEach(function(u,i){ H+='<div class="urow"><span class="ue">'+esc(u.email)+'</span><span class="ur">'+esc(u.role)+'</span><button class="udel" data-i="'+i+'" title="Supprimer">✕</button></div>'; });
@@ -531,7 +542,7 @@ function getMeta(name,attr){ attr=attr||'name'; return doc.head.querySelector('m
 function setMeta(name,attr,content){ attr=attr||'name'; var m=getMeta(name,attr); if(!m){ m=doc.createElement('meta'); m.setAttribute(attr,name); doc.head.appendChild(m); } m.setAttribute('content',content||''); }
 function getSEO(){ if(!doc) return null; var t=doc.querySelector('title'); function mc(n,a){ var m=getMeta(n,a); return m?(m.getAttribute('content')||''):''; }
   return { title:t?t.textContent:'', desc:mc('description','name'), ogt:mc('og:title','property'), ogd:mc('og:description','property'), ogi:mc('og:image','property') }; }
-function applySEO(s){ if(!s||!doc) return; var t=doc.querySelector('title'); if(!t){ t=doc.createElement('title'); doc.head.appendChild(t); } t.textContent=s.title||''; setMeta('description','name',s.desc||''); setMeta('og:title','property',s.ogt||s.title||''); setMeta('og:description','property',s.ogd||s.desc||''); if(s.ogi) setMeta('og:image','property',s.ogi); }
+function applySEO(s){ if(!s||!doc) return; var t=doc.querySelector('title'); if(!t){ t=doc.createElement('title'); doc.head.appendChild(t); } t.textContent=s.title||''; setMeta('description','name',s.desc||''); setMeta('og:title','property',s.ogt||s.title||''); setMeta('og:description','property',s.ogd||s.desc||''); if(s.ogi){ setMeta('og:image','property',s.ogi); } else { var _o=getMeta('og:image','property'); if(_o) _o.remove(); } }
 function renderSEO(){
   var box=$('#seoPanel'); if(!box||!doc) return; var s=getSEO();
   box.innerHTML='<div class="seo-field"><label>Titre <span class="count" id="seoTc"></span></label><input id="seoTitle" type="text" value="'+esc(s.title)+'"></div>'
@@ -549,7 +560,7 @@ function renderSEO(){
 /* ===================================================================
    PAGES dynamiques : registre site/pages.json + ajout de page (au thème)
 =================================================================== */
-var pagesLoaded=false;
+var pagesLoaded=false, sessionPages={};
 function loadPagesRegistry(cb){
   if(pagesLoaded){ if(cb)cb(); return; }
   fetch('site/pages.json?cb='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.json():null; })
@@ -558,6 +569,7 @@ function loadPagesRegistry(cb){
 }
 function slugify(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'page'; }
 function addPage(){
+  if(!isAuthed()){ toast('Connecte-toi d\'abord'); authInit(); return; }
   if(!ghToken()){ askToken(addPage); return; }
   showModal('<h3>Nouvelle page</h3><p class="sub">Une page au thème du site (en-tête, pied et styles identiques).</p>'
     +'<div class="seo-field"><label>Nom de la page</label><input id="npName" type="text" placeholder="Ex : Nos tarifs"></div>'
@@ -575,16 +587,49 @@ function createPage(name,copyCurrent){
   var t=docp.querySelector('title'); if(t) t.textContent=name+' - ParFi Group';
   var dm=docp.head.querySelector('meta[name="description"]'); if(dm) dm.setAttribute('content','');
   if(!copyCurrent){ var m=docp.querySelector('main'); if(m) m.innerHTML='<section class="page-hero"><div class="wrap"><h1>'+esc(name)+'</h1><p>Cliquez sur ce texte pour le modifier, ou ajoutez des blocs depuis le panneau « Blocs ».</p></div></section>'; }
+  navInject(docp, slug, name);   /* la nouvelle page se référence dans son propre menu */
   var html='<!DOCTYPE html>\n'+docp.documentElement.outerHTML;
+  if(new Blob([html]).size>900000){ toast('Page trop lourde (image > ~1 Mo) — non créée.'); return; }
   PAGES.push({id:id,label:name,file:file}); renderPages();
   currentPage=id; deselect();
-  frame.srcdoc=html.replace('<head>','<head><base href="site/">');   /* aperçu immédiat ; base pour résoudre assets/ */
+  var srcdocHtml=html.replace('<head>','<head><base href="site/">');
+  sessionPages[id]=srcdocHtml;   /* FIX P1 : aperçu gardé en session (pas de 404 au retour avant déploiement) */
+  save(LS_STATE+':'+id, { html:(new DOMParser().parseFromString(html,'text/html')).body.innerHTML, theme:getTheme(), seo:getSEO() });
+  frame.removeAttribute('src'); frame.srcdoc=srcdocHtml;
   toast('Création de « '+name+' »…');
-  Promise.all([
-    commitContent('editor/'+file, html, 'Nouvelle page : '+name),
-    commitContent('editor/site/pages.json', JSON.stringify(PAGES,null,2), 'MAJ liste des pages')
-  ]).then(function(){ toast('✓ Page « '+name+' » créée — en ligne dans ~30 s'); })
+  commitContent('editor/'+file, html, 'Nouvelle page : '+name)
+    .then(function(){ return commitContent('editor/site/pages.json', JSON.stringify(PAGES,null,2), 'MAJ liste des pages'); })
+    .then(function(){ return addNavToExistingPages(slug, name); })   /* FIX P1 : page atteignable depuis le menu des autres pages */
+    .then(function(){ toast('✓ Page « '+name+' » créée et ajoutée au menu — en ligne (~30 s)'); })
     .catch(function(err){ toast('Page créée (locale) ; échec mise en ligne : '+err.message); });
+}
+/* injecte un lien de menu (nav + drawer) vers slug.html, sans doublon */
+function navInject(d, slug, name){
+  [].forEach.call(d.querySelectorAll('.nav, .drawer'), function(nav){
+    if(nav.querySelector('a[href="'+slug+'.html"]')) return;
+    var a=d.createElement('a'); a.setAttribute('href', slug+'.html'); a.textContent=name;
+    var btn=nav.querySelector('a.btn'); if(btn) nav.insertBefore(a, btn); else nav.appendChild(a);
+  });
+}
+function ghGetFile(path){
+  var token=ghToken();
+  return fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path+'?ref='+GH.branch,{ headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}, cache:'no-store' })
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){ if(!j||!j.content) return null; try{ return { sha:j.sha, text:decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))) }; }catch(e){ return null; } });
+}
+function addNavToExistingPages(slug, name){
+  var targets=PAGES.filter(function(p){ return p.id!==slug && /\.html$/.test(p.file); });
+  return targets.reduce(function(chain, p){
+    return chain.then(function(){
+      return ghGetFile('editor/'+p.file).then(function(f){
+        if(!f) return;
+        var d=new DOMParser().parseFromString(f.text,'text/html');
+        if(d.querySelector('.nav a[href="'+slug+'.html"]')) return;
+        navInject(d, slug, name);
+        return commitContent('editor/'+p.file, '<!DOCTYPE html>\n'+d.documentElement.outerHTML, 'Ajout du lien « '+name+' » au menu');
+      });
+    });
+  }, Promise.resolve());
 }
 
 /* Commit générique d'un fichier via l'API GitHub (réutilisé par doCommit/createPage) */
