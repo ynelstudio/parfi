@@ -25,6 +25,9 @@ CONTENT.md              Contenu verbatim de référence
 
 L'éditeur charge le site dans une `<iframe>` même-origine : il faut le servir en **HTTP** (pas un double-clic `file://`).
 
+**Windows (le plus simple) :** double-clic sur **`editor/lancer-editeur.cmd`** → l'éditeur s'ouvre dans le navigateur. Garder la fenêtre noire ouverte pendant le travail.
+
+**Ou en ligne de commande :**
 ```bash
 # depuis le dossier editor/
 python -m http.server 5050
