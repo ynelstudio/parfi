@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A propos - ParFi Group</title>
+<meta name="description" content="ParFi France, votre expert-comptable et fiscaliste depuis 2014. Comptabilité, paie, fiscalité et conseil aux trois frontières : France, Luxembourg et Belgique.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+/* ===================================================================
+   ParFi France — reproduction fidèle de sc10flga8844.universe.wf
+   Tokens relevés en live : Open Sans · #23346B navy · #00BAE5 cyan
+   · #6EC1E4 bleu clair · texte #4A4A4A
+=================================================================== */
+:root{
+  --navy:#23346B;
+  --cyan:#00BAE5;
+  --sky:#6EC1E4;
+  --ink:#4A4A4A;
+  --dark:#212121;
+  --dark2:#242424;
+  --white:#fff;
+  --container:1110px;
+  --pad:24px;
+  --radius-pill:30px;
+  --ease:cubic-bezier(.22,.61,.36,1);
+}
+*,*::before,*::after{box-sizing:border-box;}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  font-family:"Open Sans",system-ui,Arial,sans-serif;
+  font-size:14px;
+  line-height:1.8;
+  color:var(--ink);
+  background:var(--white);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+img{max-width:100%;height:auto;display:block;}
+a{color:inherit;text-decoration:none;}
+h1,h2,h3,p{margin:0;}
+ul{margin:0;padding:0;list-style:none;}
+
+.wrap{max-width:var(--container);margin:0 auto;padding-inline:var(--pad);}
+
+/* ---------- Boutons ---------- */
+.btn{
+  display:inline-block;
+  font-size:16px;font-weight:500;line-height:1;
+  padding:14px 28px;border-radius:var(--radius-pill);
+  border:1px solid transparent;cursor:pointer;
+  transition:transform .25s var(--ease),background-color .25s var(--ease),color .25s var(--ease),box-shadow .25s var(--ease);
+  white-space:nowrap;
+}
+.btn--navy{background:var(--navy);color:var(--white);}
+.btn--navy:hover{background:#1a274f;transform:translateY(-2px);box-shadow:0 12px 26px rgba(35,52,107,.28);}
+.btn--ghost-white{background:transparent;color:var(--white);border-color:var(--white);}
+.btn--ghost-white:hover{background:var(--white);color:var(--navy);transform:translateY(-2px);}
+.btn--ghost-navy{background:transparent;color:var(--navy);border-color:var(--navy);}
+.btn--ghost-navy:hover{background:var(--navy);color:var(--white);transform:translateY(-2px);}
+.link-more{
+  display:inline-flex;align-items:center;gap:.4em;
+  color:var(--navy);font-weight:600;font-size:15px;border-radius:3px;
+}
+.link-more::after{content:"→";transition:transform .25s var(--ease);}
+.link-more:hover{color:var(--cyan);}
+.link-more:hover::after{transform:translateX(4px);}
+
+/* ---------- Header ---------- */
+.hdr{
+  position:sticky;top:0;z-index:60;
+  background:rgba(255,255,255,.96);
+  backdrop-filter:saturate(180%) blur(6px);
+  transition:box-shadow .3s var(--ease);
+}
+.hdr.is-stuck{box-shadow:0 6px 24px rgba(20,30,60,.08);}
+.hdr__in{display:flex;align-items:center;justify-content:space-between;gap:24px;height:84px;}
+.hdr__logo{height:42px;width:auto;}
+.nav{display:flex;align-items:center;gap:34px;}
+.nav a{
+  font-size:16px;font-weight:600;color:#313131;letter-spacing:.7px;
+  position:relative;padding:6px 0;transition:color .2s var(--ease);
+}
+.nav a::after{
+  content:"";position:absolute;left:0;bottom:0;height:2px;width:0;
+  background:var(--cyan);transition:width .28s var(--ease);
+}
+.nav a:hover{color:var(--navy);}
+.nav a:hover::after{width:100%;}
+.hdr__cta{margin-left:6px;}
+.burger{display:none;background:none;border:0;width:42px;height:42px;cursor:pointer;padding:9px;}
+.burger span{display:block;height:2px;width:100%;background:var(--navy);border-radius:2px;transition:transform .3s var(--ease),opacity .3s var(--ease);}
+.burger span+span{margin-top:6px;}
+.burger.on span:nth-child(1){transform:translateY(8px) rotate(45deg);}
+.burger.on span:nth-child(2){opacity:0;}
+.burger.on span:nth-child(3){transform:translateY(-8px) rotate(-45deg);}
+
+/* mobile drawer */
+.drawer{
+  position:fixed;inset:84px 0 auto 0;z-index:55;
+  background:var(--white);box-shadow:0 18px 40px rgba(20,30,60,.14);
+  transform:translateY(-130%);transition:transform .4s var(--ease);
+  padding:14px var(--pad) 26px;
+}
+.drawer.on{transform:translateY(0);}
+.drawer a{display:block;font-size:18px;font-weight:600;color:var(--navy);padding:14px 0;border-bottom:1px solid #eef2f7;letter-spacing:.4px;}
+.drawer .btn{margin-top:18px;width:100%;text-align:center;}
+
+/* ---------- Hero ---------- */
+.hero{background:var(--sky);overflow:hidden;}
+.hero__in{
+  display:grid;grid-template-columns:1.05fr .95fr;align-items:end;gap:30px;
+  min-height:560px;
+}
+.hero__text{padding:96px 0 96px;max-width:520px;align-self:center;}
+.hero h1{
+  font-size:50px;font-weight:700;line-height:1.04;color:var(--navy);
+  letter-spacing:-.5px;margin-bottom:22px;
+}
+.hero__sub{color:var(--white);font-size:16px;font-weight:400;line-height:1.6;margin-bottom:30px;max-width:430px;}
+.hero__media{position:relative;align-self:end;height:100%;display:flex;align-items:flex-end;justify-content:center;}
+.hero__media img{max-height:560px;width:auto;filter:drop-shadow(0 24px 40px rgba(20,40,70,.18));}
+
+/* ---------- Section helpers ---------- */
+.section{padding:88px 0;}
+.section--tight{padding:70px 0;}
+.kicker{color:var(--cyan);font-weight:700;font-size:13px;letter-spacing:1.6px;text-transform:uppercase;margin-bottom:14px;}
+.h-sec{font-size:30px;font-weight:400;line-height:1.18;color:var(--dark);}
+.lead{font-size:16px;line-height:1.9;color:var(--ink);}
+
+/* ---------- Services ---------- */
+.services{background:var(--white);}
+.services__lead{max-width:760px;margin:0 auto 56px;text-align:center;font-size:17px;line-height:1.9;color:#3d4451;}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;}
+.card{
+  text-align:center;padding:40px 28px;border-radius:14px;
+  background:var(--white);border:1px solid #eef2f7;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease);
+}
+.card:hover{transform:translateY(-8px);box-shadow:0 22px 50px rgba(20,40,80,.10);border-color:transparent;}
+.card__ic{height:96px;display:flex;align-items:center;justify-content:center;margin-bottom:22px;}
+.card__ic img{max-height:96px;width:auto;}
+.card h3{font-size:22px;font-weight:600;color:var(--dark2);line-height:1.25;margin-bottom:14px;}
+.card p{font-size:14.5px;line-height:1.8;color:var(--ink);margin-bottom:22px;}
+
+/* ---------- À propos ---------- */
+.about__grid{display:grid;grid-template-columns:.95fr 1.05fr;gap:54px;align-items:start;}
+.about h2{margin-bottom:8px;}
+.about__rule{width:64px;height:4px;background:var(--cyan);border-radius:2px;margin:18px 0 4px;}
+.about__col p{font-size:15.5px;line-height:1.95;color:#43495a;}
+.about__col p+p{margin-top:20px;}
+.about__quote{
+  border-left:3px solid var(--cyan);padding-left:22px;
+  font-size:18px;line-height:1.7;color:var(--navy);font-weight:600;
+}
+
+/* ---------- Piliers (valeurs) ---------- */
+.pillars{background:var(--cyan);}
+.pillars__grid{display:grid;grid-template-columns:repeat(4,1fr);gap:34px;}
+.pillar__no{font-size:13px;font-weight:700;letter-spacing:1.5px;color:var(--navy);opacity:.55;margin-bottom:12px;}
+.pillar h3{font-size:21px;font-weight:600;line-height:1.2;color:var(--navy);margin-bottom:14px;}
+.pillar p{font-size:14.5px;line-height:1.85;color:#0a3b49;}
+
+/* ---------- Bandeau frontières ---------- */
+.frontiers{background:#f3f9fd;text-align:center;}
+.frontiers h2{font-size:30px;font-weight:400;color:var(--dark);line-height:1.25;max-width:760px;margin:0 auto 12px;}
+.frontiers__line{display:flex;align-items:center;justify-content:center;gap:0;margin:26px auto 30px;max-width:560px;}
+.frontiers__node{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.frontiers__dot{width:14px;height:14px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 5px rgba(0,186,229,.18);}
+.frontiers__node b{color:var(--navy);font-size:15px;letter-spacing:1px;}
+.frontiers__node span{font-size:12px;color:var(--ink);}
+.frontiers__seg{flex:1;height:2px;background:linear-gradient(90deg,var(--cyan),var(--sky));margin:0 6px;align-self:flex-start;margin-top:6px;}
+
+/* ---------- FAQ ---------- */
+.faq{background:var(--navy);}
+.faq__head{text-align:center;margin-bottom:42px;}
+.faq__head h2{font-size:38px;font-weight:700;color:var(--white);letter-spacing:1px;margin-bottom:10px;}
+.faq__head p{color:#c5d0ea;font-size:16px;}
+.faq__list{max-width:840px;margin:0 auto;display:flex;flex-direction:column;gap:14px;}
+.faq__item{background:var(--white);border-radius:10px;overflow:hidden;box-shadow:0 8px 22px rgba(0,0,0,.10);}
+.faq__q{
+  width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:22px 26px;font-family:inherit;
+  font-size:16.5px;font-weight:600;color:var(--dark2);line-height:1.4;
+}
+.faq__q:hover{color:var(--navy);}
+.faq__pm{position:relative;flex:0 0 18px;width:18px;height:18px;}
+.faq__pm::before,.faq__pm::after{content:"";position:absolute;background:var(--cyan);border-radius:2px;transition:transform .3s var(--ease);}
+.faq__pm::before{top:8px;left:0;width:18px;height:2px;}
+.faq__pm::after{left:8px;top:0;width:2px;height:18px;}
+.faq__item.open .faq__pm::after{transform:scaleY(0);}
+.faq__a{max-height:0;overflow:hidden;transition:max-height .4s var(--ease);}
+.faq__a-in{padding:0 26px 24px;font-size:14.5px;line-height:1.85;color:#52596a;}
+
+/* ---------- CTA ---------- */
+.cta{background:var(--white);text-align:center;}
+.cta__box{max-width:760px;margin:0 auto;}
+.cta h2{font-size:32px;font-weight:400;color:var(--dark);line-height:1.2;margin-bottom:18px;}
+.cta p{font-size:16px;line-height:1.9;color:#43495a;margin-bottom:30px;}
+
+/* ---------- Newsletter ---------- */
+.news{background:var(--cyan);}
+.news__grid{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;}
+.news h2{font-size:30px;font-weight:600;color:var(--navy);line-height:1.2;margin-bottom:14px;}
+.news p{font-size:15.5px;line-height:1.85;color:#063a47;}
+.news__form{display:flex;gap:12px;flex-wrap:wrap;}
+.news__form input{
+  flex:1;min-width:220px;height:54px;padding:0 22px;border-radius:var(--radius-pill);
+  border:1px solid rgba(6,48,59,.18);background:rgba(255,255,255,.92);
+  font-family:inherit;font-size:15px;color:var(--navy);
+}
+.news__form input::placeholder{color:#5b7a84;}
+.news__form input:focus{outline:none;border-color:var(--navy);background:#fff;}
+.news__ok{display:none;margin-top:14px;color:var(--navy);font-weight:600;}
+.news__ok.on{display:block;}
+
+/* ---------- Footer ---------- */
+.ft{background:var(--navy);color:#cdd6ee;padding:70px 0 0;}
+.ft__grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:44px;padding-bottom:48px;}
+.ft__logo{height:40px;margin-bottom:20px;}
+.ft__brand p{font-size:14px;line-height:1.85;color:#aebadd;max-width:340px;}
+.ft__col h3{color:var(--cyan);font-size:18px;font-weight:600;margin-bottom:18px;}
+.ft__col a,.ft__col p{display:block;color:#cdd6ee;font-size:14.5px;line-height:1.6;padding:7px 0;transition:color .2s var(--ease);}
+.ft__col a:hover{color:var(--white);}
+.ft__social{display:flex;gap:12px;margin-top:6px;}
+.ft__social a{
+  width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.22);
+  display:flex;align-items:center;justify-content:center;color:#cdd6ee;
+  transition:background .25s var(--ease),color .25s var(--ease),border-color .25s var(--ease);
+}
+.ft__social a:hover{background:var(--cyan);color:var(--navy);border-color:var(--cyan);}
+.ft__social svg{width:18px;height:18px;fill:currentColor;}
+.ft__bot{
+  border-top:1px solid rgba(255,255,255,.12);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+  padding:22px 0;font-size:13px;color:#9fabd0;
+}
+.ft__bot nav{display:flex;gap:22px;flex-wrap:wrap;}
+.ft__bot a:hover{color:var(--white);}
+
+/* ===================================================================
+   RESPONSIVE
+=================================================================== */
+@media (max-width:1024px){
+  .hero h1{font-size:42px;}
+  .about__grid{gap:36px;}
+  .pillars__grid{grid-template-columns:repeat(2,1fr);gap:30px 36px;}
+  .ft__grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:880px){
+  .nav,.hdr__cta{display:none;}
+  .burger{display:block;}
+  .hero__in{grid-template-columns:1fr;min-height:0;}
+  .hero__text{padding:64px 0 0;max-width:none;text-align:center;}
+  .hero__sub{margin-inline:auto;}
+  .hero__media{margin-top:30px;}
+  .hero__media img{max-height:460px;}
+  .cards{grid-template-columns:1fr;max-width:440px;margin:0 auto;}
+  .about__grid{grid-template-columns:1fr;}
+  .news__grid{grid-template-columns:1fr;gap:24px;}
+}
+@media (max-width:560px){
+  :root{--pad:18px;}
+  .hero h1{font-size:34px;}
+  .h-sec,.frontiers h2,.cta h2{font-size:25px;}
+  .faq__head h2{font-size:30px;}
+  .section{padding:64px 0;}
+  .pillars__grid{grid-template-columns:1fr;}
+  .ft__grid{grid-template-columns:1fr;gap:32px;}
+  .ft__bot{flex-direction:column;align-items:flex-start;}
+  .frontiers__node span{display:none;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{transition:none!important;scroll-behavior:auto!important;}
+}
+
+/* ---------- Pages internes (Services / À propos / Contact) ---------- */
+.page-hero{background:#fff;text-align:center;padding:116px 0 64px;}
+.page-hero h1{font-size:40px;font-weight:700;color:var(--navy);line-height:1.15;max-width:840px;margin:0 auto 18px;letter-spacing:-.5px;}
+.page-hero p{font-size:17px;line-height:1.9;color:#3d4451;max-width:740px;margin:0 auto;}
+.band{padding:84px 0;}
+.band--cyan{background:var(--cyan);}
+.band--navy{background:var(--navy);}
+.band h2{font-size:30px;font-weight:600;line-height:1.25;margin:0 0 22px;max-width:840px;}
+.band--cyan h2{color:var(--navy);} .band--navy h2{color:#fff;}
+.band p{font-size:15.5px;line-height:1.95;max-width:780px;}
+.band p+p{margin-top:18px;}
+.band--cyan p{color:#063a47;} .band--navy p{color:#cdd6ee;}
+.ctaband{background:var(--cyan);text-align:center;padding:72px 0;}
+.ctaband h2{color:var(--navy);font-size:28px;font-weight:700;margin:0 0 14px;}
+.ctaband p{color:#063a47;max-width:680px;margin:0 auto 26px;font-size:15.5px;line-height:1.85;}
+.contact-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:50px;align-items:start;}
+.contact-info h3{font-size:20px;color:var(--navy);font-weight:700;margin:0 0 10px;}
+.contact-info p{font-size:15px;line-height:1.8;color:var(--ink);margin:0 0 22px;}
+.contact-card{background:var(--navy);border-radius:16px;padding:34px;}
+.contact-card h3{color:#fff;font-size:21px;margin:0 0 8px;}
+.contact-card>p{color:#aebadd;font-size:14.5px;line-height:1.7;margin:0 0 22px;}
+.cform label{display:block;font-weight:600;font-size:13px;color:#fff;margin:0 0 6px;}
+.cform input,.cform textarea{width:100%;padding:13px 15px;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:rgba(255,255,255,.06);color:#fff;font:inherit;margin-bottom:16px;}
+.cform input::placeholder,.cform textarea::placeholder{color:#9fb0d8;}
+.cform .btn{width:100%;text-align:center;border:0;cursor:pointer;background:var(--cyan);color:var(--navy);font-weight:600;}
+.offices{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;}
+.office{background:rgba(255,255,255,.55);border-radius:14px;padding:24px;}
+.office h3{font-size:17px;color:var(--navy);font-weight:700;margin:0 0 10px;}
+.office p{font-size:14px;line-height:1.6;color:#0a3b49;margin:0;}
+@media(max-width:880px){.contact-grid{grid-template-columns:1fr}.offices{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.offices{grid-template-columns:1fr}.page-hero h1{font-size:30px}.band h2{font-size:24px}}
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<header class="hdr" id="hdr">
+  <div class="wrap hdr__in">
+    <a href="index.html" aria-label="ParFi France — accueil">
+      <img src="assets/logo-parfi-france.png" alt="ParFi France" class="hdr__logo">
+    </a>
+    <nav class="nav" aria-label="Navigation principale">
+      <a href="services.html">Services</a>
+      <a href="apropos.html">A propos</a>
+      <a href="https://www.parfigroup.eu/news/">News</a>
+      <a href="https://www.parfigroup.eu/jobs/">Jobs</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <a href="contact.html" class="btn btn--navy hdr__cta">Contactez-nous</a>
+    <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+<nav class="drawer" id="drawer" aria-label="Menu mobile">
+  <a href="services.html">Services</a>
+  <a href="apropos.html">A propos</a>
+  <a href="https://www.parfigroup.eu/news/">News</a>
+  <a href="https://www.parfigroup.eu/jobs/">Jobs</a>
+  <a href="contact.html">Contact</a>
+  <a href="contact.html" class="btn btn--navy">Contactez-nous</a>
+</nav>
+
+<main id="top">
+  <section class="page-hero">
+    <div class="wrap">
+      <h1>ParFi France, votre expert-comptable depuis 2014 en France, au Luxembourg et en Belgique</h1>
+      <p>Situé au cœur des 3 frontières, ParFi France est un cabinet d'expertise comptable qui fait partie de ParFi Group, un groupe international résolument tourné vers l'avenir et les innovations technologiques du secteur. Grâce à notre appartenance à ParFi Group, nous nous appuyons sur des experts dédiés dans chaque pays pour garantir une parfaite conformité avec les législations françaises, belges et luxembourgeoises. Cette synergie transfrontalière nous permet d'intervenir efficacement auprès des entreprises ayant une activité ou une implantation dans plusieurs juridictions.</p>
+    </div>
+  </section>
+  <section class="band band--cyan">
+    <div class="wrap">
+      <h2>Une expertise historique et des solutions adaptées à vos besoins</h2>
+      <p>Chez ParFi France, chaque entreprise est abordée comme un projet unique. Nous prenons le temps d'analyser votre situation, vos objectifs et vos contraintes pour construire des solutions adaptées à votre organisation. C'est pourquoi nous privilégions le dialogue, la disponibilité et une connaissance approfondie de chaque entreprise que nous accompagnons.</p>
+      <p>ParFi France est un partenaire fiable, capable d'apporter de la clarté et de l'expertise dans des situations parfois complexes. Notre mission est d'offrir un accompagnement sur mesure aux dirigeants et à leurs entreprises, adapté aux exigences réglementaires de chaque territoire.</p>
+    </div>
+  </section>
+  <section class="band band--navy">
+    <div class="wrap">
+      <h2>L'humain au cœur des chiffres avec ParFi France</h2>
+      <p>L'accompagnement proposé par ParFi France s'appuie sur des valeurs fortes qui guident notre travail au quotidien. La transparence est essentielle dans nos échanges, pour établir des relations claires et durables. L'exigence nous permet de garantir un haut niveau de qualité dans chaque mission confiée.</p>
+      <p>Enfin, l'engagement humain est au cœur de notre démarche. Au-delà des aspects techniques, nous vous apportons une vision globale et un regard extérieur, tous deux basés sur une relation de confiance.</p>
+    </div>
+  </section>
+  <section class="section services" id="services">
+    <div class="wrap">
+      <div class="cards">
+        <article class="card"><div class="card__ic"><img src="assets/photo-38.png" alt=""></div><h3>Experts-comptables</h3><p>Tenue de la comptabilité, préparation et dépôt des comptes annuels, réconciliations bancaires, déclaration de la TVA…</p><a href="contact.html" class="link-more">En savoir plus</a></article>
+        <article class="card"><div class="card__ic"><img src="assets/photo-40.png" alt=""></div><h3>Secrétariat social &amp; calcul de salaire</h3><p>Gestion de paie, déclarations et obligations sociales, procédures liées aux embauches et aux départs…</p><a href="contact.html" class="link-more">En savoir plus</a></article>
+        <article class="card"><div class="card__ic"><img src="assets/photo-37.png" alt=""></div><h3>Services aux entreprises</h3><p>Conseil stratégique en fiscalité, assistance juridique, accompagnement en création et en gestion d'entreprise…</p><a href="contact.html" class="link-more">En savoir plus</a></article>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ FOOTER ============ -->
+<footer class="ft" id="contact">
+  <div class="wrap">
+    <div class="ft__grid">
+      <div class="ft__brand">
+        <img src="assets/logo-parfi-group-inv.png" alt="ParFi Group" class="ft__logo">
+        <p>Bien plus qu'un expert-comptable. ParFi France vous accompagne aux trois frontières — France, Luxembourg et Belgique — depuis 2014.</p>
+        <div class="ft__social">
+          <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M14 13.5h2.5l1-4H14V7.5c0-1.03 0-2 2-2h1.5V2.14c-.33-.04-1.57-.14-2.88-.14C12.92 2 11 3.66 11 6.7v2.8H8v4h3V22h3v-8.5z"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6.94 5a2 2 0 11-4-.002 2 2 0 014 .002zM7 8.48H3V21h4V8.48zm6.32 0H9.34V21h3.94v-6.57c0-3.66 4.77-4 4.77 0V21H22v-7.93c0-6.17-7.06-5.94-8.72-2.91l.04-1.68z"/></svg></a>
+        </div>
+      </div>
+      <nav class="ft__col" aria-label="Contact">
+        <h3>Contact</h3>
+        <p><strong>ParFi France</strong></p>
+        <p>4 rue Alfred Mézières<br>54400 Longwy</p>
+        <a href="tel:+33382440240">+33 3 82 44 02 40</a>
+        <a href="mailto:info@parfigroup.eu">info@parfigroup.eu</a>
+        <a href="contact.html">Découvrir nos autres bureaux</a>
+      </nav>
+      <nav class="ft__col" aria-label="Nos services">
+        <h3>Nos services</h3>
+        <a href="services.html">Experts-comptables</a>
+        <a href="services.html">Secrétariat social &amp; calcul de salaire</a>
+        <a href="services.html">Services aux entreprises</a>
+      </nav>
+    </div>
+    <div class="ft__bot">
+      <span>Copyright © 2026 ParFi Group. Tous droits réservés.</span>
+      <nav aria-label="Mentions légales">
+        <a href="#">Politique de confidentialité</a>
+        <a href="#">Politique des cookies</a>
+        <a href="#">Mentions légales</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var d=document;
+
+  /* header shadow on scroll */
+  var hdr=d.getElementById('hdr');
+  var onScroll=function(){ hdr.classList.toggle('is-stuck', window.scrollY>8); };
+  onScroll(); window.addEventListener('scroll',onScroll,{passive:true});
+
+  /* mobile drawer */
+  var burger=d.getElementById('burger'), drawer=d.getElementById('drawer');
+  function setMenu(open){
+    burger.classList.toggle('on',open);
+    drawer.classList.toggle('on',open);
+    burger.setAttribute('aria-expanded',open?'true':'false');
+    d.body.style.overflow=open?'hidden':'';
+  }
+  burger.addEventListener('click',function(){ setMenu(!drawer.classList.contains('on')); });
+  drawer.addEventListener('click',function(e){ if(e.target.closest('a')) setMenu(false); });
+  d.addEventListener('keydown',function(e){ if(e.key==='Escape') setMenu(false); });
+
+  /* FAQ accordion */
+  var items=[].slice.call(d.querySelectorAll('.faq__item'));
+  items.forEach(function(item){
+    var btn=item.querySelector('.faq__q');
+    var panel=item.querySelector('.faq__a');
+    btn.addEventListener('click',function(){
+      var isOpen=item.classList.contains('open');
+      items.forEach(function(o){
+        o.classList.remove('open');
+        o.querySelector('.faq__q').setAttribute('aria-expanded','false');
+        o.querySelector('.faq__a').style.maxHeight=null;
+      });
+      if(!isOpen){
+        item.classList.add('open');
+        btn.setAttribute('aria-expanded','true');
+        panel.style.maxHeight=panel.scrollHeight+'px';
+      }
+    });
+  });
+  window.addEventListener('resize',function(){
+    var open=d.querySelector('.faq__item.open .faq__a');
+    if(open) open.style.maxHeight=open.scrollHeight+'px';
+  });
+
+  /* newsletter (no backend) */
+  var form=d.getElementById('newsForm'), ok=d.getElementById('newsOk');
+  if(form) form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var inp=form.querySelector('input');
+    if(inp && inp.value && /\S+@\S+\.\S+/.test(inp.value)){ ok.classList.add('on'); form.reset(); }
+    else { inp.focus(); }
+  });
+})();
+</script>
+</body>
+</html>

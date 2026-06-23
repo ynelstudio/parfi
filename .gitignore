@@ -1,0 +1,23 @@
+# Explorations de design abandonnées (non retenues) — hors dépôt
+/modern/
+/immersif/
+/flagship/
+/vignelli/
+/refresh/
+/concept-1-premium/
+/concept-2-editorial/
+/concept-3-fintech/
+/_source/
+/index.html
+
+# Système / éditeurs
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node / divers
+node_modules/
+*.log
+*.tmp
