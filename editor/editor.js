@@ -398,8 +398,19 @@ function b64utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
 function saveOnline(){
   if(!isAuthed()){ toast('Connecte-toi d\'abord'); authInit(); return; }
   var page=PAGES.filter(function(x){ return x.id===currentPage; })[0];
-  if(!ghToken()){ saveViaGitHub(); return; }   /* pas de token → méthode copier-coller GitHub (sans token) */
+  var s=session()||{};
+  if(s.server&&s.token){ confirmModal('Enregistrer « '+page.label+' » en ligne ?','La page sera publiée. Mise à jour visible dans ~30 secondes.',function(){ doServerSave(page); }); return; }
+  if(!ghToken()){ saveViaGitHub(); return; }   /* ni serveur ni token → méthode copier-coller GitHub */
   confirmModal('Enregistrer « '+page.label+' » en ligne ?','La page sera publiée sur le site. La mise à jour est visible dans ~30 secondes.',function(){ doCommit(repoPathFor(currentPage), page.label); });
+}
+function doServerSave(page){
+  endInlineEdit(); flushSnap();
+  var html=exportDoc();
+  if(new Blob([html]).size>900000){ toast('Trop lourd (image > ~1 Mo) — optimise l\'image avant.'); return; }
+  setSave(false); toast('Enregistrement…');
+  commitFile(repoPathFor(currentPage), html, 'Edition de '+page.label+' (editeur)')
+    .then(function(){ dirty=false; setSave(true); toast('✓ Enregistré — le site se met à jour (~30 s)'); })
+    .catch(function(err){ setSave(false); toast('Échec : '+err.message); });
 }
 /* ---- Enregistrement SANS TOKEN : copie le code + ouvre le fichier sur GitHub ---- */
 function ghEditUrl(){ var p=PAGES.filter(function(x){ return x.id===currentPage; })[0]; return 'https://github.com/'+GH.owner+'/'+GH.repo+'/edit/'+GH.branch+'/editor/'+p.file; }
@@ -541,6 +552,23 @@ function authInit(){
 function doLogin(){
   var email=($('#loginEmail').value||'').trim(), pass=$('#loginPass').value||'', btn=$('#loginBtn');
   btn.disabled=true; $('#loginErr').textContent='';
+  /* 1) tentative SERVEUR (Vercel) : mot de passe vérifié côté serveur, jeton de session signé */
+  fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})})
+    .then(function(r){
+      if(r.status===401){ return r.json().then(function(e){ throw {rejected:true,msg:(e&&e.error)||'E-mail ou mot de passe incorrect.'}; }); }
+      if(!r.ok){ throw {noapi:true}; }                       /* pas d'API (ex: GitHub Pages) → repli local */
+      return r.json();
+    })
+    .then(function(d){
+      try{ localStorage.setItem('parfi-auth',JSON.stringify({email:d.email,role:d.role||'admin',token:d.token,server:true,exp:Date.now()+7*864e5})); }catch(e){}
+      $('#login').classList.add('hidden'); afterLogin();
+    })
+    .catch(function(e){
+      if(e&&e.rejected){ $('#loginErr').textContent=e.msg; btn.disabled=false; $('#loginPass').value=''; $('#loginPass').focus(); return; }
+      clientLogin(email,pass,btn);                            /* 2) repli LOCAL (API indisponible) */
+    });
+}
+function clientLogin(email,pass,btn){
   var u=users().filter(function(x){ return x.email.toLowerCase()===email.toLowerCase(); })[0];
   sha256(pass).then(function(h){
     if(u&&h===u.hash){ try{ localStorage.setItem('parfi-auth',JSON.stringify({email:u.email,role:u.role,exp:Date.now()+7*864e5})); }catch(e){} $('#login').classList.add('hidden'); afterLogin(); }
@@ -630,8 +658,8 @@ function createPage(name,copyCurrent){
   save(LS_STATE+':'+id, { html:(new DOMParser().parseFromString(html,'text/html')).body.innerHTML, theme:getTheme(), seo:getSEO() });
   frame.removeAttribute('src'); frame.srcdoc=srcdocHtml;
   toast('Création de « '+name+' »…');
-  commitContent('editor/'+file, html, 'Nouvelle page : '+name)
-    .then(function(){ return commitContent('editor/site/pages.json', JSON.stringify(PAGES,null,2), 'MAJ liste des pages'); })
+  commitFile('editor/'+file, html, 'Nouvelle page : '+name)
+    .then(function(){ return commitFile('editor/site/pages.json', JSON.stringify(PAGES,null,2), 'MAJ liste des pages'); })
     .then(function(){ return addNavToExistingPages(slug, name); })   /* FIX P1 : page atteignable depuis le menu des autres pages */
     .then(function(){ toast('✓ Page « '+name+' » créée et ajoutée au menu — en ligne (~30 s)'); })
     .catch(function(err){ toast('Page créée (locale) ; échec mise en ligne : '+err.message); });
@@ -645,10 +673,8 @@ function navInject(d, slug, name){
   });
 }
 function ghGetFile(path){
-  var token=ghToken();
-  return fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path+'?ref='+GH.branch,{ headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json'}, cache:'no-store' })
-    .then(function(r){ return r.ok?r.json():null; })
-    .then(function(j){ if(!j||!j.content) return null; try{ return { sha:j.sha, text:decodeURIComponent(escape(atob((j.content||'').replace(/\n/g,'')))) }; }catch(e){ return null; } });
+  var rel=path.replace(/^editor\//,'');   /* éditeur servi à /editor/ → on lit le fichier déployé en relatif (pas besoin de token) */
+  return fetch(rel+'?cb='+Date.now(),{cache:'no-store'}).then(function(r){ return r.ok?r.text():null; }).then(function(t){ return t?{ text:t }:null; });
 }
 function addNavToExistingPages(slug, name){
   var targets=PAGES.filter(function(p){ return p.id!==slug && /\.html$/.test(p.file); });
@@ -659,13 +685,22 @@ function addNavToExistingPages(slug, name){
         var d=new DOMParser().parseFromString(f.text,'text/html');
         if(d.querySelector('.nav a[href="'+slug+'.html"]')) return;
         navInject(d, slug, name);
-        return commitContent('editor/'+p.file, '<!DOCTYPE html>\n'+d.documentElement.outerHTML, 'Ajout du lien « '+name+' » au menu');
+        return commitFile('editor/'+p.file, '<!DOCTYPE html>\n'+d.documentElement.outerHTML, 'Ajout du lien « '+name+' » au menu');
       });
     });
   }, Promise.resolve());
 }
 
-/* Commit générique d'un fichier via l'API GitHub (réutilisé par doCommit/createPage) */
+/* Commit d'un fichier : via le SERVEUR Vercel (session) sinon via le token GitHub client */
+function commitFile(path, content, message){
+  var s=session()||{};
+  if(s.server&&s.token){
+    return fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:s.token,path:path,content:content,message:message})})
+      .then(function(r){ if(!r.ok) return r.json().then(function(e){ throw new Error((e&&e.error)||('HTTP '+r.status)); }); return r.json(); });
+  }
+  return commitContent(path, content, message);
+}
+/* Commit générique d'un fichier via l'API GitHub (token client — repli) */
 function commitContent(path,contentStr,message){
   var token=ghToken(), api='https://api.github.com/repos/'+GH.owner+'/'+GH.repo+'/contents/'+path;
   var headers={ 'Authorization':'Bearer '+token, 'Accept':'application/vnd.github+json' };
